@@ -9,6 +9,26 @@
 (defn authentication [t]
   (= t "letmein"))
 
+(deftest successful-token-parsing-test
+  (let [handler (wrap-token-parsing identity)
+        response (handler tokenized-request)]
+    (is (= "letmein" (:token-authentication response)))))
+
+(deftest bad-token-parsing-test
+  (let [handler (wrap-token-parsing identity)
+        response (handler bad-tokenized-request)]
+    (is (= "dontletmein" (:token-authentication response)))))
+
+(deftest invalid-token-parsing-test
+  (let [handler (wrap-token-parsing identity)
+        response (handler malformed-tokenized-request)]
+    (is (= nil (:token-authentication response)))))
+
+(deftest no-token-parsing-test
+  (let [handler (wrap-token-parsing identity)
+        response (handler {:headers {}})]
+    (is (= nil (:token-authentication response)))))
+
 (deftest test-authentication-success
   (let [handler  (wrap-token-authentication identity authentication)
         response (handler tokenized-request)]

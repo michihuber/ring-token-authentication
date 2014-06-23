@@ -2,6 +2,11 @@
   "HTTP token authentication middleware for ring."
   {:author "Jason Stewart"})
 
+(defn- parse-token
+  [request]
+  (let [auth ((:headers request) "authorization")]
+    (and auth (last (re-find #"Token token=(.*)$" auth)))))
+
 (defn token-authentication-request
   "Authenticates the given request against using a fn (f) that accepts a single
   string parameter that is the token parsed from the authentication header.
@@ -9,8 +14,7 @@
   true indicates successful auth, while false or nil indicates failure.
   failure."
   [request f]
-  (let [auth  ((:headers request) "authorization")
-        token (and auth (last (re-find #"Token token=(.*)$" auth)))]
+  (let [token (parse-token request)]
     (assoc request :token-authentication
            (and token (f (str token))))))
 
@@ -23,6 +27,14 @@
         headers {"WWW-Authenticate" "Token realm=\"Application\""}]
     (assoc (merge resp custom-response)
       :headers (merge (:headers resp) headers))))
+
+(defn wrap-token-parsing
+  "Parses the authentication token from the authorization header (if
+  available) and inserts it under the :token-authentication key in the
+  request map."
+  [handler]
+  (fn [request]
+    (handler (assoc request :token-authentication (parse-token request)))))
 
 (defn wrap-token-authentication
   "Wrap the response with a REST token authentication.
